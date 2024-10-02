@@ -16,7 +16,7 @@ def parse_data(
     '''
     Returns filename, or bucketpath, to where the processed data will get stored in
     '''
-    values = ti.xcom_pull(task_ids=['generate_data'][0])
+    values = ti.xcom_pull(task_ids=['generate_data'])[0]
     _, stg_data = values
     output_lst = list()
 

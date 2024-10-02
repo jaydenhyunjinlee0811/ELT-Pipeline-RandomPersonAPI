@@ -2,7 +2,6 @@ from datetime import timedelta, datetime
 from zoneinfo import ZoneInfo
 import sys
 import os
-import dotenv
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
@@ -16,9 +15,9 @@ from src import (
     ingest_data
 )
 
-_ = dotenv.load_dotenv()
 DAG_NAME='Dev-ELT-Pipeline-20240926'
 RUN_DT = datetime.today().astimezone(ZoneInfo('America/Los_Angeles'))
+NUM_DATA = 10
 default_args = {
     'depends_on_past': False,
     'email': ['airflow@example.com'],
@@ -52,7 +51,7 @@ with DAG(
     task_generate_data = PythonOperator(
         task_id='generate_data',
         python_callable=async_generate_data,
-        op_kwargs={'num_data': 10, 'run_dt':RUN_DT},
+        op_kwargs={'num_data': NUM_DATA, 'run_dt':RUN_DT},
         do_xcom_push=True
     )
     
