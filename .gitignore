@@ -160,6 +160,7 @@ data/
 tests/
 *dev*
 pyproject.toml
+airflow-data/
 
 # Personal
 THINGS_I_LEARNED.md
