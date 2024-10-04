@@ -1,0 +1,121 @@
+---
+
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow
+  env_file:
+    - .env
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./src:/opt/airflow/src
+    - ./airflow-data/logs:/opt/airflow/logs
+    - ./airflow-data/plugins:/opt/airflow/plugins
+    - ./airflow-data/airflow.cfg:/opt/airlfow/airflow.cfg
+    - ./.venv:/opt/airflow/.venv
+  depends_on:
+    - postgres
+
+services:
+  postgres:
+    container_name: postgres-db
+    image: postgres
+    hostname: localhost
+    user: "${UID}:${GID}"
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: jlee_pg
+      POSTGRES_PASSWORD: jlee_pg
+      POSTGRES_DB: maindb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 30s
+      retries: 5
+    volumes:
+      - ELT_20240920_db_volume:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    depends_on:
+      - postgres
+    ports:
+      - "5050:80"
+    volumes:
+      - ELT_20240920_db_volume:/var/lib/pgadmin
+    user: "${UID}:${GID}"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: jayden
+    restart: unless-stopped
+
+  minio:
+    container_name: minio_container
+    image: minio/minio
+    hostname: localhost
+    ports:
+      - "9010:9010"
+      - "9011:9011"
+    command: server /data --address ":9010" --console-address ":9011"
+    volumes:
+      - elt_project_20240919_ELT_20240920_bucket_volume:/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  airflow-init:
+    << : *airflow-common
+    container_name: airflow_init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - airflow db init &&
+        airflow users create
+          --role Admin
+          --username airflow
+          --password airflow
+          --email airflow@airflow.com
+          --firstname airflow
+          --lastname airflow
+    restart: on-failure
+
+  airflow-webserver:
+    << : *airflow-common
+    command: airflow webserver
+    ports:
+      - 8080:8080
+    container_name: airflow_webserver
+    restart: unless-stopped
+    depends_on:
+      - airflow-scheduler
+      - airflow-init
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./src:/opt/airflow/src
+      - ./airflow-data/logs:/opt/airflow/logs
+      - ./airflow-data/plugins:/opt/airflow/plugins
+      - ./airflow-data/airflow.cfg:/opt/airlfow/airflow.cfg
+    command: airflow scheduler
+    container_name: airflow_scheduler
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - airflow-init
+
+networks:
+  ELT_20240920_network:
+
+volumes:
+  ELT_20240920_db_volume:
+    name: "pg-backend-volume"
+    external: True
+  elt_project_20240919_ELT_20240920_bucket_volume:
+    external: True
