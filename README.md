@@ -49,8 +49,9 @@ ELT RandomPersonAPI
 │   .gitignore
 │   Dockerfile
 │   docker-compose.yaml
-│   dags
 │   main.py
+└───dags
+│   │ mainDAG.py
 └───src
 │   │   __init__.py
 │   │   utils.py
